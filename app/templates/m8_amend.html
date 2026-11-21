@@ -1,0 +1,67 @@
+{% extends "base.html" %}{% block content %}
+<div class="slips">
+  <section class="panel wide">
+    <header><h2>补正裁决台账</h2><span>批次 {{data.base_run_id or '—'}}</span></header>
+    <div class="amend-demo">
+      <p>{{demo.description}}</p>
+      <div class="amend-actions">
+        {% for a in demo.amendments %}
+        <button class="amend-demo-btn" data-run="{{data.base_run_id}}" data-amend="{{a.amendment_id}}"
+                data-target="{{a.target_id}}" data-fields='{{a.fields|tojson}}' title="{{a.note}}">
+          载入 {{a.amendment_id}}（{{a.target_id}} · {{a.fields|tojson}}）
+        </button>
+        {% endfor %}
+        <button id="amend-recheck" data-run="{{data.base_run_id}}">重新核对整条补正链</button>
+      </div>
+    </div>
+    <form id="amend-form" class="amend-form">
+      <input name="run_id" value="{{data.base_run_id}}" placeholder="运行批次号" readonly>
+      <input name="amendment_id" placeholder="补正编号（幂等键）" required>
+      <input name="target_id" placeholder="目标报告ID" required>
+      <textarea name="fields_json" placeholder='更正字段JSON，如 {"lod":"0.002"}' required></textarea>
+      <button type="submit">提交补正裁决</button>
+    </form>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>序号</th><th>到达时间</th><th>补正编号</th><th>目标报告</th><th>更正字段</th><th>裁决</th><th>驳回原因</th><th>形成版本</th></tr></thead>
+        <tbody id="amend-ledger">
+        {% for a in data.ledger %}
+          <tr>
+            <td class="num">{{a.seq}}</td><td>{{a.received_at[:19]}}</td><td>{{a.amendment_id}}</td><td>{{a.target_id}}</td>
+            <td>{{a.fields}}</td>
+            <td>{% if a.applied %}<span class="pass">采纳并成版</span>{% else %}<span class="reject">整份驳回</span>{% endif %}</td>
+            <td>{{a.reject_code or '—'}}</td><td>{{a.out_run_id}}</td>
+          </tr>
+        {% else %}<tr><td colspan="8">该批次尚无补正登记</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel version-slip">
+    <header><h2>当前报告版本</h2></header>
+    <div class="test-label">
+      <span>CURRENT</span>
+      <b>{{data.current_run_id or '—'}}</b>
+      <div>合格 {{data.current_summary.business.pass if data.current_summary.business else '—'}} ·
+           超限 {{data.current_summary.business.fail if data.current_summary.business else '—'}} ·
+           不确定 {{data.current_summary.business.uncertain if data.current_summary.business else '—'}}</div>
+      <div>批次等级 {{data.current_summary.grades if data.current_summary.grades else '—'}}</div>
+      <strong>封存资格：{{'具备' if data.current_summary.seal_ready else '不具备'}}</strong>
+    </div>
+    <div id="recheck-result" class="recheck"></div>
+    <div class="slip-tail">原始报告与全部补正均在台账留痕，可重新核对</div>
+  </section>
+
+  <section class="panel wide">
+    <header><h2>裁决规则</h2></header>
+    <ul class="amend-rules">
+      <li>补正按到达先后逐份作用于当前有效版本，整版快照叠加，禁止跨版本拼接字段。</li>
+      <li>每份补正重新经过限量选版、区间换算与复检关联全链路校验；触发规则即整份驳回，旧当前版本继续有效。</li>
+      <li>项目结论、批次等级与封存资格随当前版本重算；被驳回补正不改变任何结论。</li>
+      <li>同一补正编号重跑只回放原裁决，不新增版本；编号相同内容冲突返回 409。</li>
+      <li>台账只追加，原始报告与每份补正（含驳回件）永久留痕；提交在单事务内完成，中断保留旧版。</li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

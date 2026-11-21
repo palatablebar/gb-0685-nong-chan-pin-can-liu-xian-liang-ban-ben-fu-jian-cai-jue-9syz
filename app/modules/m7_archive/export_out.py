@@ -8,6 +8,8 @@ def bundle(state):
     writer.writerow(['对账',rid,'','','',json.dumps(state.get('reconcile',{}),ensure_ascii=False,sort_keys=True)])
     for row in state.get('calculations',[]):writer.writerow(['计算',rid,row.get('line',''),row.get('id',''),row.get('code',''),json.dumps(row,ensure_ascii=False,sort_keys=True)])
     for row in state['quarantine']:writer.writerow(['隔离',rid,row['line'],row.get('id',''),row['code'],json.dumps(row.get('raw',{}),ensure_ascii=False,sort_keys=True)])
+    # 补正台账（含被驳回件）随封存证据归档，原始报告与每份补正均不丢失。
+    for row in state.get('amendments',[]):writer.writerow(['补正',rid,row.get('seq',''),row.get('amendment_id',''),row.get('reject_code',''),json.dumps(row,ensure_ascii=False,sort_keys=True)])
     return '\ufeff'+out.getvalue()
 
 def checksum(state):

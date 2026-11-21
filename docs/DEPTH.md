@@ -13,6 +13,7 @@
 | M5 复检裁决 | 查看并复算复检裁决 | `/api/m5_calculate` | `app/modules/m5_calculate/rules.py` | `tests/test_calculate.py` |
 | M6 批次判级 | 查看并复算批次判级 | `/api/m6_reconcile` | `app/modules/m6_reconcile/compare.py` | `tests/test_reconcile.py` |
 | M7 报告归档 | 查看并复算报告归档 | `/api/m7_archive` | `app/modules/m7_archive/export_out.py` | `tests/test_archive.py` |
+| M8 补正裁决 | 登记并裁决报告补正 | `/api/m8_amend` | `app/modules/m8_amend/service.py` | `tests/test_amendments.py` |
 
 ## 陷阱登记
 
@@ -32,6 +33,10 @@
 | TRAP-15 | ug/kg与mg/kg | 差1000倍 | 浓度统一mg/kg | `app/modules/m4_segments/rules.py` | `tests/test_segments.py::test_unit_conversion` |
 | TRAP-25 | 标准时间边界 | 双版或错版 | 采样日半开区间选版 | `app/modules/m3_versions/standards.py` | `tests/test_versions.py::test_halfopen_effective` |
 | TRAP-20 | 复检引用环 | 遍历无法结束 | 引用路径检测 | `app/modules/m5_calculate/rules.py` | `tests/test_calculate.py::test_cycle_rejected` |
+| TRAP-30 | 补正字段拼接 | 按到达先后取最新字段拼成矛盾版本 | 整版快照叠加+全链路重判，违规整份驳回 | `app/modules/m8_amend/service.py` | `tests/test_amendments.py::test_sampled_date_amendment_rejected_keeps_current_version` |
+| TRAP-31 | 补正重跑重复成版 | 每次提交新增版本 | 补正编号幂等，同编号异载荷409 | `app/store.py` | `tests/test_amendments.py::test_rerun_same_amendment_is_idempotent_no_new_version` |
+| TRAP-32 | 补正写入半成功 | 台账与快照不一致 | 单事务提交，中断整体回滚保留旧版 | `app/store.py` | `tests/test_amendments.py::test_interrupted_write_keeps_old_version` |
+| TRAP-33 | 补正链叠加错位 | 后续补正作用于原始批次 | 始终在当前有效版本快照上追加 | `app/modules/m8_amend/service.py` | `tests/test_amendments.py::test_chained_amendments_stack_on_current_not_original` |
 
 ## 对账规则
 
